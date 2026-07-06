@@ -4,17 +4,18 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import torch
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup 
 from fastchat.model import get_conversation_template
 from tqdm import tqdm
+from pathlib import Path
 
 from common_utils import *
 
 _TAGS = ["entity", "relation", "sentence", "invented", "subjective", "unverifiable"]
-
+data_dir = Path("./data/")
+model_dir = Path("../llm-hallucinations-factual-qa/.cache/models/")
 
 def get_modified_data():
-    # loading "annotations.json" file
     with open("annotations.json", "r", encoding="utf-8") as f:
         data = json.loads(f.read())
 
@@ -79,10 +80,14 @@ def get_scores_dict(model_name_or_path, data, mt_list, args):
     system_prompt = ""
     generation_config = {}
     generation_config.update({"temperature": 0.6, "top_p": 0.9, "top_k": 50, "do_sample": True})
-    model, tokenizer = load_model_and_tokenizer(model_name_or_path, dtype=torch.bfloat16, **generation_config)
+    model, tokenizer = load_model_and_tokenizer(model_name_or_path,
+                                                dtype=torch.bfloat16,
+                                                cache_dir=model_dir,
+                                                attn_implementation="eager",
+                                                **generation_config)
     tok_lens, labels, tok_ins = [], [], []
 
-    scores = []
+    scores, generated_embeddings = [], []
     indiv_scores = {}
     for mt in mt_list:
         indiv_scores[mt] = defaultdict(def_dict_value)
@@ -97,17 +102,24 @@ def get_scores_dict(model_name_or_path, data, mt_list, args):
 
         chat_template = get_conversation_template(model_name_or_path)
         chat_template.set_system_message(system_prompt.strip())
+        chat_template.messages = []
         chat_template.append_message(chat_template.roles[0], prompt.strip())
         chat_template.append_message(chat_template.roles[1], response.strip())
 
         full_prompt = chat_template.get_prompt()
         user_prompt = full_prompt.split(response.strip())[0].strip()
+        # print(full_prompt)
 
         tok_in_u = tokenizer(user_prompt, return_tensors="pt", add_special_tokens=True).input_ids
+        prompt_len = tok_in_u.shape[1]
         tok_in = tokenizer(full_prompt, return_tensors="pt", add_special_tokens=True).input_ids
+        # print(f"Full prompt length: {tok_in.shape[1]}")
         tok_lens.append([tok_in_u.shape[1], tok_in.shape[1]])
 
-        logit, hidden_act, attn = get_model_vals(model, tok_in.to(0))
+        logit, hidden_act, attn = get_model_vals(model, tok_in.to(1))
+        last_token_embeddings = hidden_act[-1][0, :, :].to(torch.float32).detach().cpu()  # Last token embedding from last layer
+        # print(last_token_embeddings.shape)  # Should be (response_len, hidden_dim)
+        generated_embeddings.append(last_token_embeddings)
         # Unpacking the values into lists on CPU
         logit = logit[0].cpu()
         hidden_act = [x[0].to(torch.float32).detach().cpu() for x in hidden_act]
@@ -127,4 +139,4 @@ def get_scores_dict(model_name_or_path, data, mt_list, args):
             use_toklens=args.use_toklens,
         )
 
-    return scores, indiv_scores, labels
+    return scores, indiv_scores, generated_embeddings, labels

@@ -26,6 +26,11 @@ def load_dataset_utils(args):
 
         get_data = utils_ragtruth.get_ragtruth_data
         get_scores_dict = utils_ragtruth.get_scores_dict
+    elif args.dataset == "trivia_qa":
+        import utils_trivia_qa
+
+        get_data = utils_trivia_qa.get_trivia_qa_data
+        get_scores_dict = utils_trivia_qa.get_scores_dict
     else:
         raise ValueError("Invalid dataset")
     return get_data, get_scores_dict
@@ -77,8 +82,12 @@ def get_full_model_name(model_name: str):
         name = ["vicuna", "lmsys/vicuna-7b-v1.5"]
     elif "vicuna13b" in model_name:
         name = ["vicuna13b", "lmsys/vicuna-13b-v1.5"]
-    elif "llama-3" in model_name:
-        name = ["llama-3", "meta-llama/Meta-Llama-3-8B-Instruct"]
+    elif "open-llama-7b" in model_name:
+        name = ["open_llama", "openlm-research/open_llama_7b"]
+    elif "llama-3.1" in model_name:
+        name = ["llama-3.1", "meta-llama/Llama-3.1-8B-Instruct"]
+    elif "llama3" in model_name:
+        name = ["llama3", "meta-llama/Meta-Llama-3-8B-Instruct"]
     elif "llama" in model_name:
         name = ["llama", "meta-llama/Llama-2-7b-chat-hf"]
     elif "pythia" in model_name:
@@ -89,6 +98,8 @@ def get_full_model_name(model_name: str):
         name = ["mistral", "mistralai/Mistral-7B-Instruct-v0.2"]
     elif "falcon" in model_name:
         name = ["falcon", "tiiuae/falcon-7b-instruct"]
+    elif "qwen" in model_name:
+        name = ["qwen", "Qwen/Qwen2.5-7B-Instruct"]
     return name
 
 
@@ -96,7 +107,7 @@ def load_model_and_tokenizer(
     model_name_or_path: str, tokenizer_name_or_path: str = None, dtype=torch.float16, **kwargs
 ):
     """Util to load model and tokenizer"""
-    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map="auto", torch_dtype=dtype, **kwargs)
+    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map="cuda:1", torch_dtype=dtype, **kwargs)
     model.requires_grad_(False)
     if model.generation_config.temperature is None:
         model.generation_config.temperature = 1.0
