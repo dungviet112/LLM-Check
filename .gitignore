@@ -5,3 +5,4 @@ data/
 *.pyc
 *.pt
 logs/
+checkpoints/

@@ -36,5 +36,5 @@ if __name__ == "__main__":
     scores, sample_indiv_scores, generated_embeddings, sample_labels = get_scores_dict(model_name_or_path, sample_data, mt_list, args)
 
     # save the scores to /data
-    with open(f"data/full_context/scores_{args.dataset}_{args.model.lower()}_layer32_{n_samples}samp.pkl", "wb") as f:
+    with open(f"data/only_answer/scores_{args.dataset}_{args.model.lower()}_layer32_{n_samples}samp.pkl", "wb") as f:
         pkl.dump([scores, sample_indiv_scores, generated_embeddings, sample_labels], f)
