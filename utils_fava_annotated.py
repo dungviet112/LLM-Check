@@ -118,7 +118,7 @@ def get_scores_dict(model_name_or_path, data, mt_list, args):
 
         logit, hidden_act, attn = get_model_vals(model, tok_in.to(1))
         last_token_embeddings = hidden_act[-12][0, prompt_len:, :].to(torch.float32).detach().cpu()  # Last token embedding from last layer
-        # print(last_token_embeddings.shape)  # Should be (response_len, hidden_dim)
+        # print(last_token_embeddings.shape)  # (response_len, hidden_dim)
         generated_embeddings.append(last_token_embeddings)
         # Unpacking the values into lists on CPU
         logit = logit[0].cpu()
