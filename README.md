@@ -23,6 +23,8 @@ For a response consisting of multiple tokens, the hidden representation of each 
 
 These token level representations can then be aggregated by mean pooling. The final vector provides a compact representation of the response in the latent space.
 
+2 classifier architectures (Single MLP, Multi-layer DNN + Residual block) are investigated over contextual embeddings.
+
 <!-- <p align="center">
     <img src="images_readme/Hallucinated_and_truthful_pair_examples.png" width="800"\>
 </p> -->
